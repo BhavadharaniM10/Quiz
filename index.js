@@ -79,7 +79,7 @@ app.get('/take/:name', async (req, res) => {
           document.getElementById('content').textContent = 'Error: Could not load questions. Check server logs.';
           return;
         }
-        document.getElementById('title').textContent = data.quizName || '${quizName}';
+        document.getElementById('title').textContent = data.quizName || ${quizName};
         const container = document.getElementById('content');
         let idx = 0; let score = 0;
         function render() {
@@ -132,7 +132,7 @@ app.get('/api/quiz/:name', async (req, res) => {
 
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sid,
-      range: `'${quizName}'!A:Z`
+      range: `${quizName}!A:Z`
     });
 
     const data = response.data.values;
