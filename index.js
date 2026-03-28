@@ -25,7 +25,7 @@ const serviceAccount = {
 };
 
 // Spreadsheet configuration
-const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
+const SPREADSHEET_ID = process.env.SPREADSHEET_ID || '';
 
 
 // Auth client
@@ -73,7 +73,7 @@ app.get('/take/:name', async (req, res) => {
     </div>
     <script>
       async function load() {
-        const res = await fetch('/quiz/${quizName}');
+        const res = await fetch('/api/quiz/${quizName}');
         const data = await res.json();
         if (!data || !data.questions) {
           document.getElementById('content').textContent = 'Error: Could not load questions. Check server logs.';
@@ -95,7 +95,7 @@ app.get('/take/:name', async (req, res) => {
                 score: score
               };
               try {
-                const resp = await fetch('/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const resp = await fetch('/api/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                 const j = await resp.json().catch(() => ({}));
                 alert(j.message || 'Submission saved!');
               } catch (e) { alert('Failed to submit result'); }
@@ -121,17 +121,18 @@ app.get('/take/:name', async (req, res) => {
   </html>`);
 });
 
-app.get('/quiz/:name', async (req, res) => {
+app.get('/api/quiz/:name', async (req, res) => {
   const quizName = req.params.name;
 
   try {
     const { sheetId } = req.query;
+    const sid = sheetId || SPREADSHEET_ID;
     const client = await auth.getClient();
     const sheets = google.sheets({ version: 'v4', auth: client });
 
     const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: sheetId || SPREADSHEET_ID,
-      range: `${quizName}!A:Z`
+      spreadsheetId: sid,
+      range: `'${quizName}'!A:Z`
     });
 
     const data = response.data.values;
@@ -169,7 +170,7 @@ app.get('/quiz/:name', async (req, res) => {
 });
 
 
-app.post('/submit', async (req, res) => {
+app.post('/api/submit', async (req, res) => {
   const { name, register_number, score, department, year, total, sheetId, quizTitle: bodyQuizTitle } = req.body;
   const quizTitle = bodyQuizTitle || department || 'Quiz';
 
@@ -178,7 +179,7 @@ app.post('/submit', async (req, res) => {
   }
   
   const sid = sheetId || SPREADSHEET_ID;
-  if (!sid) return res.status(400).json({ error: 'Spreadsheet ID is required' });
+  if (!sid || sid === '') return res.status(400).json({ error: 'Spreadsheet ID is required' });
 
   const resultsTab = `${quizTitle}Result`;
 
@@ -231,11 +232,11 @@ app.post('/submit', async (req, res) => {
   }
 });
 
-app.get('/submitted-registers', async (req, res) => {
+app.get('/api/submitted-registers', async (req, res) => {
   try {
     const { sheetId, quiz } = req.query;
     const sid = sheetId || SPREADSHEET_ID;
-    if (!sid) return res.status(400).json({ error: 'Spreadsheet ID is required' });
+    if (!sid || sid === '') return res.status(400).json({ error: 'Spreadsheet ID is required' });
 
     const resultsTab = quiz ? `${quiz}Result` : 'result';
 
